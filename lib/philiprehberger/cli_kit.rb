@@ -14,9 +14,9 @@ module Philiprehberger
     # @param args [Array<String>] command-line arguments
     # @yield [Parser] the parser for defining flags and options
     # @return [Parser] the parsed result with flags, options, and arguments
-    def self.parse(args, &block)
+    def self.parse(args, &)
       parser = Parser.new
-      parser.instance_eval(&block)
+      parser.instance_eval(&)
       parser.parse(args)
     end
 
