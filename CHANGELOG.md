@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-30
+
+### Added
+- Subcommands with isolated flags and options via `command(:name) { ... }` DSL
+- `result.command` returns matched subcommand name as symbol or nil
+- Auto-generated help text with `desc:` parameter on flags and options
+- `--help` / `-h` prints formatted usage and exits
+- `result.help_text` returns formatted help string without printing
+- `result.help_requested?` indicates whether help was requested
+- Menu/selection prompt via `CliKit.select(message, choices)` with numbered options
+- `default:` option for pre-selected menu choice
+- `input:` and `output:` IO parameters on `select` for testability
+
 ## [0.1.2] - 2026-03-22
 
 ### Added
