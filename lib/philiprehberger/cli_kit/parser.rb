@@ -34,10 +34,11 @@ module Philiprehberger
       # @param short [Symbol, nil] short alias (single character)
       # @param default [Object, nil] default value
       # @param desc [String, nil] description for help text
+      # @param multi [Boolean] when true, collect repeated values into an array
       # @return [void]
-      def option(name, short: nil, default: nil, desc: nil)
-        @option_definitions[name] = { short: short, default: default, desc: desc }
-        @options[name] = default
+      def option(name, short: nil, default: nil, desc: nil, multi: false)
+        @option_definitions[name] = { short: short, default: default, desc: desc, multi: multi }
+        @options[name] = multi ? [] : default
       end
 
       # Define a subcommand or return the matched command name.
@@ -147,7 +148,7 @@ module Philiprehberger
         if @flag_definitions.key?(name)
           @flags[name] = true
         elsif @option_definitions.key?(name)
-          @options[name] = args.shift
+          assign_option(name, args.shift)
         end
       end
 
@@ -163,9 +164,19 @@ module Philiprehberger
 
         @option_definitions.each do |name, defn|
           if defn[:short] == char
-            @options[name] = args.shift
+            assign_option(name, args.shift)
             return
           end
+        end
+      end
+
+      def assign_option(name, value)
+        defn = @option_definitions[name]
+        if defn && defn[:multi]
+          @options[name] = [] unless @options[name].is_a?(Array)
+          @options[name] << value unless value.nil?
+        else
+          @options[name] = value
         end
       end
 
@@ -185,7 +196,8 @@ module Philiprehberger
       end
 
       def format_option_help(name, defn)
-        long = "--#{name.to_s.tr('_', '-')} VALUE"
+        placeholder = defn[:multi] ? 'VALUE (repeatable)' : 'VALUE'
+        long = "--#{name.to_s.tr('_', '-')} #{placeholder}"
         if defn[:short]
           short = "-#{defn[:short]}"
           label = "  #{short}, #{long}"
