@@ -85,6 +85,84 @@ RSpec.describe Philiprehberger::CliKit do
 
       expect(result.flags[:dry_run]).to be true
     end
+
+    it 'returns self from parse for chaining' do
+      result = described_class.parse([]) do
+        flag :verbose
+      end
+      expect(result).to be_a(Philiprehberger::CliKit::Parser)
+    end
+
+    it 'handles multiple flags at once' do
+      result = described_class.parse(%w[--verbose --debug --force]) do
+        flag :verbose
+        flag :debug
+        flag :force
+      end
+
+      expect(result.flags[:verbose]).to be true
+      expect(result.flags[:debug]).to be true
+      expect(result.flags[:force]).to be true
+    end
+
+    it 'ignores unknown long flags' do
+      result = described_class.parse(%w[--unknown]) do
+        flag :verbose
+      end
+
+      expect(result.flags[:verbose]).to be false
+      expect(result.arguments).to be_empty
+    end
+
+    it 'ignores unknown short flags' do
+      result = described_class.parse(%w[-x]) do
+        flag :verbose, short: :v
+      end
+
+      expect(result.flags[:verbose]).to be false
+    end
+
+    it 'handles multiple options with defaults' do
+      result = described_class.parse([]) do
+        option :host, default: 'localhost'
+        option :port, default: '8080'
+      end
+
+      expect(result.options[:host]).to eq('localhost')
+      expect(result.options[:port]).to eq('8080')
+    end
+
+    it 'overrides defaults when option is provided' do
+      result = described_class.parse(%w[--host 0.0.0.0]) do
+        option :host, default: 'localhost'
+      end
+
+      expect(result.options[:host]).to eq('0.0.0.0')
+    end
+
+    it 'handles options with nil default' do
+      result = described_class.parse([]) do
+        option :config
+      end
+
+      expect(result.options[:config]).to be_nil
+    end
+
+    it 'parses empty args with no definitions' do
+      result = described_class.parse([]) {}
+      expect(result.flags).to eq({})
+      expect(result.options).to eq({})
+      expect(result.arguments).to eq([])
+    end
+
+    it 'collects multiple positional arguments between flags' do
+      result = described_class.parse(%w[file1.txt --verbose file2.txt]) do
+        flag :verbose
+      end
+
+      expect(result.flags[:verbose]).to be true
+      expect(result.arguments).to eq(%w[file1.txt file2.txt])
+    end
   end
 
   describe '.prompt' do
@@ -172,6 +250,38 @@ RSpec.describe Philiprehberger::CliKit do
       executed = false
       described_class.spinner('Working...', output: output) { executed = true }
       expect(executed).to be true
+    end
+
+    it 'returns nil when block returns nil' do
+      output = StringIO.new
+      result = described_class.spinner('Working...', output: output) { nil }
+      expect(result).to be_nil
+    end
+  end
+
+  describe '.confirm' do
+    it 'returns false on EOF' do
+      input = StringIO.new('')
+      output = StringIO.new
+
+      expect(described_class.confirm('Sure?', input: input, output: output)).to be false
+    end
+
+    it 'returns true for Y (uppercase)' do
+      input = StringIO.new("Y\n")
+      output = StringIO.new
+
+      expect(described_class.confirm('Sure?', input: input, output: output)).to be true
+    end
+  end
+
+  describe '.prompt' do
+    it 'handles multiline input returning first line' do
+      input = StringIO.new("first\nsecond\n")
+      output = StringIO.new
+
+      result = described_class.prompt('Input:', input: input, output: output)
+      expect(result).to eq('first')
     end
   end
 end
