@@ -3,6 +3,7 @@
 [![Tests](https://github.com/philiprehberger/rb-cli-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-cli-kit/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-cli_kit.svg)](https://rubygems.org/gems/philiprehberger-cli_kit)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-cli-kit)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 All-in-one CLI toolkit with argument parsing, prompts, and spinners
 
