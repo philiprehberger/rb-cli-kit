@@ -61,9 +61,7 @@ module Philiprehberger
       # Return the matched command name, or nil if no command matched.
       #
       # @return [Symbol, nil]
-      def command_name
-        @command_name
-      end
+      attr_reader :command_name
 
       # Return the formatted help text without printing.
       #
