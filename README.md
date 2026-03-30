@@ -2,7 +2,11 @@
 
 [![Tests](https://github.com/philiprehberger/rb-cli-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-cli-kit/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-cli_kit.svg)](https://rubygems.org/gems/philiprehberger-cli_kit)
+[![GitHub release](https://img.shields.io/github/v/release/philiprehberger/rb-cli-kit)](https://github.com/philiprehberger/rb-cli-kit/releases)
+[![Last updated](https://img.shields.io/github/last-commit/philiprehberger/rb-cli-kit)](https://github.com/philiprehberger/rb-cli-kit/commits/main)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-cli-kit)](LICENSE)
+[![Bug Reports](https://img.shields.io/github/issues/philiprehberger/rb-cli-kit/bug)](https://github.com/philiprehberger/rb-cli-kit/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+[![Feature Requests](https://img.shields.io/github/issues/philiprehberger/rb-cli-kit/enhancement)](https://github.com/philiprehberger/rb-cli-kit/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
 [![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 All-in-one CLI toolkit with argument parsing, prompts, and spinners
@@ -40,6 +44,42 @@ result.options[:output]   # => 'out.txt' or user-provided value
 result.arguments          # => remaining positional args
 ```
 
+### Subcommands
+
+```ruby
+result = Philiprehberger::CliKit.parse(ARGV) do
+  command(:deploy) do
+    flag :force, short: :f
+    option :env, short: :e
+  end
+  command(:test) do
+    flag :coverage
+  end
+end
+
+result.command            # => :deploy or :test or nil
+result.flags[:force]      # => true/false (within matched command)
+result.options[:env]      # => user-provided value
+```
+
+### Auto-generated Help
+
+```ruby
+result = Philiprehberger::CliKit.parse(ARGV) do
+  flag :verbose, short: :v, desc: 'Enable verbose output'
+  option :output, short: :o, desc: 'Output file path'
+end
+
+# Passing --help or -h prints formatted usage and exits:
+#   Usage: command [options]
+#
+#   Options:
+#     -v, --verbose           Enable verbose output
+#     -o, --output VALUE      Output file path
+
+result.help_text          # => formatted help string without printing
+```
+
 ### Prompts
 
 ```ruby
@@ -48,6 +88,24 @@ name = Philiprehberger::CliKit.prompt('What is your name?')
 
 confirmed = Philiprehberger::CliKit.confirm('Continue?')
 # Continue? [y/n] _
+```
+
+### Menu Selection
+
+```ruby
+env = Philiprehberger::CliKit.select('Choose env:', %w[dev staging prod])
+#   Choose env:
+#     1) dev
+#     2) staging
+#     3) prod
+#   Choose: _
+
+env = Philiprehberger::CliKit.select('Choose env:', %w[dev staging prod], default: 'staging')
+#   Choose env:
+#       1) dev
+#     * 2) staging
+#       3) prod
+#   Choose [2]: _
 ```
 
 ### Spinners
@@ -59,31 +117,21 @@ data = Philiprehberger::CliKit.spinner('Loading data...') do
 end
 ```
 
-### Argument Parsing Details
-
-```ruby
-# Given: mytool --verbose -o report.csv input.txt
-result = Philiprehberger::CliKit.parse(%w[--verbose -o report.csv input.txt]) do
-  flag :verbose, short: :v
-  option :output, short: :o, default: 'out.txt'
-end
-
-result.flags[:verbose]    # => true
-result.options[:output]   # => 'report.csv'
-result.arguments          # => ['input.txt']
-```
-
 ## API
 
 | Method | Description |
 |--------|-------------|
-| `.parse(args) { ... }` | Parse arguments with flag/option DSL |
+| `.parse(args) { ... }` | Parse arguments with flag/option/command DSL |
 | `.prompt(message)` | Display prompt and read input |
 | `.confirm(message)` | Display yes/no confirmation |
+| `.select(message, choices)` | Present numbered menu and return selection |
 | `.spinner(message) { ... }` | Show spinner during block execution |
 | `Parser#flags` | Hash of boolean flag values |
 | `Parser#options` | Hash of option values |
 | `Parser#arguments` | Array of positional arguments |
+| `Parser#command` | Matched subcommand name or nil |
+| `Parser#help_text` | Formatted help string |
+| `Parser#help_requested?` | Whether --help or -h was passed |
 
 ## Development
 
@@ -93,6 +141,13 @@ bundle exec rspec
 bundle exec rubocop
 ```
 
+## Support
+
+If you find this package useful, consider giving it a star on GitHub — it helps motivate continued maintenance and development.
+
+[![LinkedIn](https://img.shields.io/badge/Philip%20Rehberger-LinkedIn-0A66C2?logo=linkedin)](https://www.linkedin.com/in/philiprehberger)
+[![More packages](https://img.shields.io/badge/more-open%20source%20packages-blue)](https://philiprehberger.com/open-source-packages)
+
 ## License
 
-MIT
+[MIT](LICENSE)

@@ -8,6 +8,10 @@ RSpec.describe Philiprehberger::CliKit do
     it 'has a version number' do
       expect(Philiprehberger::CliKit::VERSION).not_to be_nil
     end
+
+    it 'is 0.2.0' do
+      expect(Philiprehberger::CliKit::VERSION).to eq('0.2.0')
+    end
   end
 
   describe '.parse' do
@@ -165,6 +169,323 @@ RSpec.describe Philiprehberger::CliKit do
     end
   end
 
+  describe 'subcommands' do
+    it 'parses a subcommand with its own flags' do
+      result = described_class.parse(%w[deploy --force]) do
+        command(:deploy) do
+          flag :force, short: :f
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.flags[:force]).to be true
+    end
+
+    it 'parses a subcommand with its own options' do
+      result = described_class.parse(%w[deploy --env staging]) do
+        command(:deploy) do
+          option :env, short: :e
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.options[:env]).to eq('staging')
+    end
+
+    it 'parses subcommand with short flags' do
+      result = described_class.parse(%w[deploy -f -e production]) do
+        command(:deploy) do
+          flag :force, short: :f
+          option :env, short: :e
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.flags[:force]).to be true
+      expect(result.options[:env]).to eq('production')
+    end
+
+    it 'returns nil command when no command matches' do
+      result = described_class.parse(%w[--verbose]) do
+        flag :verbose
+        command(:deploy) do
+          flag :force
+        end
+      end
+
+      expect(result.command).to be_nil
+      expect(result.flags[:verbose]).to be true
+    end
+
+    it 'collects positional arguments after subcommand' do
+      result = described_class.parse(%w[deploy app1 app2]) do
+        command(:deploy) do
+          flag :force
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.arguments).to eq(%w[app1 app2])
+    end
+
+    it 'isolates command flags from top-level flags' do
+      result = described_class.parse(%w[deploy --force]) do
+        flag :verbose
+        command(:deploy) do
+          flag :force
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.flags[:force]).to be true
+      expect(result.flags).not_to have_key(:verbose)
+    end
+
+    it 'supports multiple command definitions' do
+      result = described_class.parse(%w[test --coverage]) do
+        command(:deploy) do
+          flag :force
+        end
+        command(:test) do
+          flag :coverage
+        end
+      end
+
+      expect(result.command).to eq(:test)
+      expect(result.flags[:coverage]).to be true
+    end
+
+    it 'parses subcommand with mixed flags, options, and arguments' do
+      result = described_class.parse(%w[deploy -f --env staging app.rb]) do
+        command(:deploy) do
+          flag :force, short: :f
+          option :env, short: :e
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.flags[:force]).to be true
+      expect(result.options[:env]).to eq('staging')
+      expect(result.arguments).to eq(%w[app.rb])
+    end
+
+    it 'uses default option values in subcommands' do
+      result = described_class.parse(%w[deploy]) do
+        command(:deploy) do
+          option :env, default: 'development'
+        end
+      end
+
+      expect(result.command).to eq(:deploy)
+      expect(result.options[:env]).to eq('development')
+    end
+  end
+
+  describe 'auto-generated help' do
+    it 'generates help text for flags with descriptions' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose, short: :v, desc: 'Enable verbose output')
+      parser.flag(:force, desc: 'Force operation')
+
+      help = parser.help_text
+      expect(help).to include('-v, --verbose')
+      expect(help).to include('Enable verbose output')
+      expect(help).to include('--force')
+      expect(help).to include('Force operation')
+    end
+
+    it 'generates help text for options with descriptions' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.option(:output, short: :o, desc: 'Output file path')
+
+      help = parser.help_text
+      expect(help).to include('-o, --output VALUE')
+      expect(help).to include('Output file path')
+    end
+
+    it 'formats flags without short alias correctly' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose, desc: 'Enable verbose output')
+
+      help = parser.help_text
+      expect(help).to include('--verbose')
+      expect(help).to include('Enable verbose output')
+    end
+
+    it 'formats options without short alias correctly' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.option(:config, desc: 'Config file path')
+
+      help = parser.help_text
+      expect(help).to include('--config VALUE')
+      expect(help).to include('Config file path')
+    end
+
+    it 'includes commands section when commands are defined' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.command(:deploy) { flag :force }
+      parser.command(:test) { flag :coverage }
+
+      help = parser.help_text
+      expect(help).to include('Commands:')
+      expect(help).to include('deploy')
+      expect(help).to include('test')
+    end
+
+    it 'sets help_requested? when --help is passed' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose)
+      parser.parse(%w[--help])
+
+      expect(parser.help_requested?).to be true
+    end
+
+    it 'sets help_requested? when -h is passed' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose)
+      parser.parse(%w[-h])
+
+      expect(parser.help_requested?).to be true
+    end
+
+    it 'does not set help_requested? for normal args' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose)
+      parser.parse(%w[--verbose])
+
+      expect(parser.help_requested?).to be false
+    end
+
+    it 'prints help and returns parser via .parse with StringIO output' do
+      output = StringIO.new
+      result = described_class.parse(%w[--help], output: output) do
+        flag :verbose, short: :v, desc: 'Enable verbose output'
+        option :output, short: :o, desc: 'Output file'
+      end
+
+      expect(output.string).to include('--verbose')
+      expect(output.string).to include('Enable verbose output')
+      expect(result.help_requested?).to be true
+    end
+
+    it 'returns help_text without printing' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose, short: :v, desc: 'Enable verbose output')
+      parser.option(:env, short: :e, desc: 'Environment name')
+
+      text = parser.help_text
+      expect(text).to be_a(String)
+      expect(text).to include('Options:')
+      expect(text).to include('-v, --verbose')
+      expect(text).to include('-e, --env VALUE')
+    end
+
+    it 'generates help with flags that have no desc' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.flag(:verbose, short: :v)
+
+      help = parser.help_text
+      expect(help).to include('-v, --verbose')
+    end
+  end
+
+  describe '.select' do
+    it 'displays numbered menu and returns selected value' do
+      input = StringIO.new("2\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose env:', %w[dev staging prod], input: input, output: output)
+
+      expect(output.string).to include('Choose env:')
+      expect(output.string).to include('1) dev')
+      expect(output.string).to include('2) staging')
+      expect(output.string).to include('3) prod')
+      expect(result).to eq('staging')
+    end
+
+    it 'returns first choice for invalid input without default' do
+      input = StringIO.new("abc\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[a b c], input: input, output: output)
+      expect(result).to eq('a')
+    end
+
+    it 'returns default when input is empty' do
+      input = StringIO.new("\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[dev staging prod], default: 'staging', input: input, output: output)
+      expect(result).to eq('staging')
+    end
+
+    it 'marks default choice with asterisk' do
+      input = StringIO.new("1\n")
+      output = StringIO.new
+
+      described_class.select('Choose:', %w[dev staging prod], default: 'staging', input: input, output: output)
+      expect(output.string).to include('* 2) staging')
+      expect(output.string).to include('  1) dev')
+    end
+
+    it 'shows default index in prompt' do
+      input = StringIO.new("\n")
+      output = StringIO.new
+
+      described_class.select('Choose:', %w[dev staging prod], default: 'staging', input: input, output: output)
+      expect(output.string).to include('Choose [2]:')
+    end
+
+    it 'returns selected value overriding default' do
+      input = StringIO.new("3\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[dev staging prod], default: 'staging', input: input, output: output)
+      expect(result).to eq('prod')
+    end
+
+    it 'raises ArgumentError for empty choices' do
+      input = StringIO.new("1\n")
+      output = StringIO.new
+
+      expect do
+        described_class.select('Choose:', [], input: input, output: output)
+      end.to raise_error(ArgumentError, 'choices must not be empty')
+    end
+
+    it 'handles single choice' do
+      input = StringIO.new("1\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[only], input: input, output: output)
+      expect(result).to eq('only')
+    end
+
+    it 'returns default for out-of-range input when default set' do
+      input = StringIO.new("99\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[a b c], default: 'b', input: input, output: output)
+      expect(result).to eq('b')
+    end
+
+    it 'returns first choice for out-of-range input without default' do
+      input = StringIO.new("99\n")
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[a b c], input: input, output: output)
+      expect(result).to eq('a')
+    end
+
+    it 'handles EOF input with default' do
+      input = StringIO.new('')
+      output = StringIO.new
+
+      result = described_class.select('Choose:', %w[a b c], default: 'c', input: input, output: output)
+      expect(result).to eq('c')
+    end
+  end
+
   describe '.prompt' do
     it 'prints message and reads input' do
       input = StringIO.new("hello\n")
@@ -191,6 +512,14 @@ RSpec.describe Philiprehberger::CliKit do
       result = described_class.prompt('Value:', input: input, output: output)
       expect(result).to eq('')
     end
+
+    it 'handles multiline input returning first line' do
+      input = StringIO.new("first\nsecond\n")
+      output = StringIO.new
+
+      result = described_class.prompt('Input:', input: input, output: output)
+      expect(result).to eq('first')
+    end
   end
 
   describe '.confirm' do
@@ -210,6 +539,13 @@ RSpec.describe Philiprehberger::CliKit do
 
     it 'returns true for YES (case insensitive)' do
       input = StringIO.new("YES\n")
+      output = StringIO.new
+
+      expect(described_class.confirm('Sure?', input: input, output: output)).to be true
+    end
+
+    it 'returns true for Y (uppercase)' do
+      input = StringIO.new("Y\n")
       output = StringIO.new
 
       expect(described_class.confirm('Sure?', input: input, output: output)).to be true
@@ -236,6 +572,13 @@ RSpec.describe Philiprehberger::CliKit do
       described_class.confirm('Continue?', input: input, output: output)
       expect(output.string).to eq('Continue? [y/n] ')
     end
+
+    it 'returns false on EOF' do
+      input = StringIO.new('')
+      output = StringIO.new
+
+      expect(described_class.confirm('Sure?', input: input, output: output)).to be false
+    end
   end
 
   describe '.spinner' do
@@ -256,32 +599,6 @@ RSpec.describe Philiprehberger::CliKit do
       output = StringIO.new
       result = described_class.spinner('Working...', output: output) { nil }
       expect(result).to be_nil
-    end
-  end
-
-  describe '.confirm' do
-    it 'returns false on EOF' do
-      input = StringIO.new('')
-      output = StringIO.new
-
-      expect(described_class.confirm('Sure?', input: input, output: output)).to be false
-    end
-
-    it 'returns true for Y (uppercase)' do
-      input = StringIO.new("Y\n")
-      output = StringIO.new
-
-      expect(described_class.confirm('Sure?', input: input, output: output)).to be true
-    end
-  end
-
-  describe '.prompt' do
-    it 'handles multiline input returning first line' do
-      input = StringIO.new("first\nsecond\n")
-      output = StringIO.new
-
-      result = described_class.prompt('Input:', input: input, output: output)
-      expect(result).to eq('first')
     end
   end
 end
