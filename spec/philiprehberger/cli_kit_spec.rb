@@ -9,8 +9,8 @@ RSpec.describe Philiprehberger::CliKit do
       expect(Philiprehberger::CliKit::VERSION).not_to be_nil
     end
 
-    it 'is 0.2.0' do
-      expect(Philiprehberger::CliKit::VERSION).to eq('0.2.0')
+    it 'is 0.2.1' do
+      expect(Philiprehberger::CliKit::VERSION).to eq('0.2.1')
     end
   end
 
