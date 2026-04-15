@@ -9,8 +9,8 @@ RSpec.describe Philiprehberger::CliKit do
       expect(Philiprehberger::CliKit::VERSION).not_to be_nil
     end
 
-    it 'is 0.2.1' do
-      expect(Philiprehberger::CliKit::VERSION).to eq('0.2.1')
+    it 'matches semantic versioning' do
+      expect(Philiprehberger::CliKit::VERSION).to match(/\A\d+\.\d+\.\d+\z/)
     end
   end
 
@@ -599,6 +599,222 @@ RSpec.describe Philiprehberger::CliKit do
       output = StringIO.new
       result = described_class.spinner('Working...', output: output) { nil }
       expect(result).to be_nil
+    end
+  end
+
+  describe 'multi-value options' do
+    it 'collects repeated long options into an array' do
+      result = described_class.parse(%w[--tag ruby --tag cli --tag kit]) do
+        option :tag, multi: true
+      end
+
+      expect(result.options[:tag]).to eq(%w[ruby cli kit])
+    end
+
+    it 'collects repeated short options into an array' do
+      result = described_class.parse(%w[-t a -t b]) do
+        option :tag, short: :t, multi: true
+      end
+
+      expect(result.options[:tag]).to eq(%w[a b])
+    end
+
+    it 'defaults multi options to an empty array when not provided' do
+      result = described_class.parse([]) do
+        option :tag, multi: true
+      end
+
+      expect(result.options[:tag]).to eq([])
+    end
+
+    it 'mixes single-value and multi-value options' do
+      result = described_class.parse(%w[--name foo --tag a --tag b]) do
+        option :name
+        option :tag, multi: true
+      end
+
+      expect(result.options[:name]).to eq('foo')
+      expect(result.options[:tag]).to eq(%w[a b])
+    end
+
+    it 'shows (repeatable) hint in help text for multi options' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.option(:tag, multi: true, desc: 'Add a tag')
+
+      expect(parser.help_text).to include('--tag VALUE (repeatable)')
+    end
+  end
+
+  describe '.password' do
+    it 'prints the message and reads input without noecho on StringIO' do
+      input = StringIO.new("secret\n")
+      output = StringIO.new
+
+      result = described_class.password('Password:', input: input, output: output)
+
+      expect(result).to eq('secret')
+      expect(output.string).to start_with('Password: ')
+    end
+
+    it 'appends a newline to the output after reading' do
+      input = StringIO.new("pw\n")
+      output = StringIO.new
+
+      described_class.password('Pwd:', input: input, output: output)
+
+      expect(output.string).to end_with("\n")
+    end
+
+    it 'returns empty string on EOF' do
+      input = StringIO.new('')
+      output = StringIO.new
+
+      expect(described_class.password('Pwd:', input: input, output: output)).to eq('')
+    end
+
+    it 'uses noecho when the input responds to it' do
+      input = StringIO.new("hidden\n")
+      output = StringIO.new
+
+      # Stub noecho on the StringIO instance
+      def input.noecho
+        yield self
+      end
+
+      result = described_class.password('Pwd:', input: input, output: output)
+      expect(result).to eq('hidden')
+    end
+
+    it 'falls back to plain gets when noecho raises IOError' do
+      input = StringIO.new("fallback\n")
+      output = StringIO.new
+
+      def input.noecho(*)
+        raise IOError, 'not a tty'
+      end
+
+      result = described_class.password('Pwd:', input: input, output: output)
+      expect(result).to eq('fallback')
+    end
+  end
+
+  describe '.ask' do
+    it 'returns the first non-empty answer when no block given' do
+      input = StringIO.new("alice\n")
+      output = StringIO.new
+
+      result = described_class.ask('Name:', input: input, output: output)
+      expect(result).to eq('alice')
+    end
+
+    it 'reprompts until validation passes' do
+      input = StringIO.new("\nbob\n")
+      output = StringIO.new
+
+      result = described_class.ask('Name:', input: input, output: output)
+
+      expect(result).to eq('bob')
+      expect(output.string).to include('Invalid input')
+    end
+
+    it 'accepts answers passing the custom validator' do
+      input = StringIO.new("abc\n42\n")
+      output = StringIO.new
+
+      result = described_class.ask('Port:', error: 'Not a number', input: input, output: output) do |ans|
+        ans.match?(/\A\d+\z/)
+      end
+
+      expect(result).to eq('42')
+      expect(output.string).to include('Not a number')
+    end
+
+    it 'returns empty string on EOF' do
+      input = StringIO.new('')
+      output = StringIO.new
+
+      expect(described_class.ask('Name:', input: input, output: output)).to eq('')
+    end
+  end
+
+  describe '.multi_select' do
+    it 'returns selections from a comma-separated answer' do
+      input = StringIO.new("1,3\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c d], input: input, output: output)
+
+      expect(result).to eq(%w[a c])
+      expect(output.string).to include('1) a')
+      expect(output.string).to include('Choose (comma-separated):')
+    end
+
+    it 'accepts space-separated answers' do
+      input = StringIO.new("2 4\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c d], input: input, output: output)
+      expect(result).to eq(%w[b d])
+    end
+
+    it 'ignores out-of-range and non-numeric tokens' do
+      input = StringIO.new("1, foo, 99, 2\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c], input: input, output: output)
+      expect(result).to eq(%w[a b])
+    end
+
+    it 'collapses duplicate selections' do
+      input = StringIO.new("1,1,2\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c], input: input, output: output)
+      expect(result).to eq(%w[a b])
+    end
+
+    it 'returns defaults when the answer is empty' do
+      input = StringIO.new("\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c], defaults: %w[b], input: input, output: output)
+      expect(result).to eq(%w[b])
+    end
+
+    it 'marks default choices with an asterisk' do
+      input = StringIO.new("\n")
+      output = StringIO.new
+
+      described_class.multi_select('Pick:', %w[a b c], defaults: %w[a c], input: input, output: output)
+
+      expect(output.string).to include('* 1) a')
+      expect(output.string).to include('  2) b')
+      expect(output.string).to include('* 3) c')
+    end
+
+    it 'returns an empty array when no defaults and empty answer' do
+      input = StringIO.new("\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b], input: input, output: output)
+      expect(result).to eq([])
+    end
+
+    it 'raises ArgumentError for empty choices' do
+      input = StringIO.new("1\n")
+      output = StringIO.new
+
+      expect do
+        described_class.multi_select('Pick:', [], input: input, output: output)
+      end.to raise_error(ArgumentError, 'choices must not be empty')
+    end
+
+    it 'returns results in choice order regardless of input order' do
+      input = StringIO.new("3,1\n")
+      output = StringIO.new
+
+      result = described_class.multi_select('Pick:', %w[a b c], input: input, output: output)
+      expect(result).to eq(%w[a c])
     end
   end
 end

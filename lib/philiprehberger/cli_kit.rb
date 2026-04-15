@@ -49,6 +49,29 @@ module Philiprehberger
       Prompt.confirm(message, input: input, output: output)
     end
 
+    # Display a prompt and read input without echoing to the terminal.
+    #
+    # @param message [String] the prompt message
+    # @param input [IO] input stream
+    # @param output [IO] output stream
+    # @return [String] the user's input
+    def self.password(message, input: $stdin, output: $stdout)
+      Prompt.password(message, input: input, output: output)
+    end
+
+    # Display a prompt, re-asking until the answer satisfies the given block.
+    #
+    # @param message [String] the prompt message
+    # @param error [String] error message shown on invalid input
+    # @param input [IO] input stream
+    # @param output [IO] output stream
+    # @yieldparam answer [String] the stripped user input
+    # @yieldreturn [Boolean] whether the answer is acceptable
+    # @return [String] the accepted user input
+    def self.ask(message, error: 'Invalid input, please try again.', input: $stdin, output: $stdout, &block)
+      Prompt.ask(message, error: error, input: input, output: output, &block)
+    end
+
     # Display a spinner while executing a block.
     #
     # @param message [String] the spinner message
@@ -69,6 +92,18 @@ module Philiprehberger
     # @return [String] the selected value
     def self.select(message, choices, default: nil, input: $stdin, output: $stdout)
       Menu.select(message, choices, default: default, input: input, output: output)
+    end
+
+    # Present a numbered menu allowing multiple selections and return the selected values.
+    #
+    # @param message [String] the prompt message
+    # @param choices [Array<String>] the list of choices
+    # @param defaults [Array<String>] pre-selected default choices
+    # @param input [IO] input stream
+    # @param output [IO] output stream
+    # @return [Array<String>] the selected values
+    def self.multi_select(message, choices, defaults: [], input: $stdin, output: $stdout)
+      Menu.multi_select(message, choices, defaults: defaults, input: input, output: output)
     end
   end
 end

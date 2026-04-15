@@ -85,6 +85,37 @@ confirmed = Philiprehberger::CliKit.confirm('Continue?')
 # Continue? [y/n] _
 ```
 
+### Password Prompt
+
+```ruby
+secret = Philiprehberger::CliKit.password('Enter password:')
+# Enter password: _
+# Input is read without echoing to the terminal when stdin is a TTY.
+```
+
+### Validated Ask
+
+```ruby
+# Without a block, any non-empty answer is accepted.
+name = Philiprehberger::CliKit.ask('Name:')
+
+# With a block, the prompt repeats until the block returns a truthy value.
+port = Philiprehberger::CliKit.ask('Port:', error: 'Must be a number') do |answer|
+  answer.match?(/\A\d+\z/)
+end
+```
+
+### Repeatable Options
+
+```ruby
+result = Philiprehberger::CliKit.parse(ARGV) do
+  option :tag, short: :t, multi: true, desc: 'Add a tag (repeatable)'
+end
+
+# Invoked as: mycli --tag ruby --tag cli -t kit
+result.options[:tag]   # => ["ruby", "cli", "kit"]
+```
+
 ### Menu Selection
 
 ```ruby
@@ -103,6 +134,26 @@ env = Philiprehberger::CliKit.select('Choose env:', %w[dev staging prod], defaul
 #   Choose [2]: _
 ```
 
+### Multi-Select Menu
+
+```ruby
+tags = Philiprehberger::CliKit.multi_select('Pick tags:', %w[ruby cli dsl testing])
+#   Pick tags:
+#       1) ruby
+#       2) cli
+#       3) dsl
+#       4) testing
+#   Choose (comma-separated): 1,3
+# => ["ruby", "dsl"]
+
+tags = Philiprehberger::CliKit.multi_select('Pick tags:', %w[ruby cli dsl], defaults: %w[ruby dsl])
+#   Pick tags:
+#     * 1) ruby
+#       2) cli
+#     * 3) dsl
+#   Choose (comma-separated): _   # empty answer => defaults
+```
+
 ### Spinners
 
 ```ruby
@@ -119,10 +170,14 @@ end
 | `.parse(args) { ... }` | Parse arguments with flag/option/command DSL |
 | `.prompt(message)` | Display prompt and read input |
 | `.confirm(message)` | Display yes/no confirmation |
-| `.select(message, choices)` | Present numbered menu and return selection |
+| `.password(message)` | Read input without echoing to the terminal |
+| `.ask(message) { \|answer\| ... }` | Prompt until block returns truthy (defaults to non-empty) |
+| `.select(message, choices)` | Present numbered menu and return one selection |
+| `.multi_select(message, choices, defaults:)` | Present numbered menu and return multiple selections |
 | `.spinner(message) { ... }` | Show spinner during block execution |
+| `Parser#option(name, multi: true)` | Collect repeated option values into an array |
 | `Parser#flags` | Hash of boolean flag values |
-| `Parser#options` | Hash of option values |
+| `Parser#options` | Hash of option values (arrays when `multi: true`) |
 | `Parser#arguments` | Array of positional arguments |
 | `Parser#command` | Matched subcommand name or nil |
 | `Parser#help_text` | Formatted help string |
