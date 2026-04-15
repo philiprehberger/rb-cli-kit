@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-15
+
+### Changed
+- Compliance audit against Ruby package, gemspec, and README guides — no blocking issues found; reaffirmed gemspec metadata (5 URIs, `rubygems_mfa_required`, `required_ruby_version >= 3.1.0`, `Dir['lib/**/*.rb', 'LICENSE', 'README.md', 'CHANGELOG.md']`), README structure (10 sections with 3 badges and emoji Support list), Keep a Changelog format, full `.github/` scaffolding (issue templates, dependabot, PR template, CI matrix with publish job), and config files (`.rubocop.yml`, `.gitignore`, `Gemfile`, `Rakefile`)
+
 ## [0.3.0] - 2026-04-15
 
 ### Added
@@ -58,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Animated spinner for long-running operations
 - Positional argument collection
 
-[Unreleased]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/philiprehberger/rb-cli-kit/compare/v0.1.2...v0.2.0
