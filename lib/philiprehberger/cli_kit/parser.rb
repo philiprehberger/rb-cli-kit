@@ -13,6 +13,7 @@ module Philiprehberger
         @flags = {}
         @options = {}
         @arguments = []
+        @supplied_options = []
         @command_name = nil
         @program_name = nil
       end
@@ -35,9 +36,12 @@ module Philiprehberger
       # @param default [Object, nil] default value
       # @param desc [String, nil] description for help text
       # @param multi [Boolean] when true, collect repeated values into an array
+      # @param required [Boolean] when true, raise if the option is not supplied at parse time
       # @return [void]
-      def option(name, short: nil, default: nil, desc: nil, multi: false)
-        @option_definitions[name] = { short: short, default: default, desc: desc, multi: multi }
+      def option(name, short: nil, default: nil, desc: nil, multi: false, required: false)
+        @option_definitions[name] = {
+          short: short, default: default, desc: desc, multi: multi, required: required
+        }
         @options[name] = multi ? [] : default
       end
 
@@ -131,6 +135,7 @@ module Philiprehberger
             @arguments << arg
           end
         end
+        validate_required_options!
         self
       end
 
@@ -172,12 +177,23 @@ module Philiprehberger
 
       def assign_option(name, value)
         defn = @option_definitions[name]
+        @supplied_options << name
         if defn && defn[:multi]
           @options[name] = [] unless @options[name].is_a?(Array)
           @options[name] << value unless value.nil?
         else
           @options[name] = value
         end
+      end
+
+      def validate_required_options!
+        missing = @option_definitions.each_with_object([]) do |(name, defn), acc|
+          acc << name if defn[:required] && !@supplied_options.include?(name)
+        end
+        return if missing.empty?
+
+        names = missing.map { |n| "--#{n.to_s.tr('_', '-')}" }.join(', ')
+        raise Error, "Missing required option(s): #{names}"
       end
 
       def format_flag_help(name, defn)
@@ -204,8 +220,10 @@ module Philiprehberger
         else
           label = "      #{long}"
         end
-        if defn[:desc]
-          "#{label.ljust(24)}#{defn[:desc]}"
+        desc = defn[:desc]
+        desc = desc ? "#{desc} (required)" : '(required)' if defn[:required]
+        if desc
+          "#{label.ljust(24)}#{desc}"
         else
           label
         end
