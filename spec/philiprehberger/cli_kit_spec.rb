@@ -817,4 +817,49 @@ RSpec.describe Philiprehberger::CliKit do
       expect(result).to eq(%w[a c])
     end
   end
+
+  describe 'required options' do
+    it 'raises CliKit::Error with the option name when a required option is missing' do
+      expect do
+        described_class.parse([]) do
+          option :env, required: true
+        end
+      end.to raise_error(Philiprehberger::CliKit::Error, /--env/)
+    end
+
+    it 'lists all missing required options in a single error message' do
+      expect do
+        described_class.parse([]) do
+          option :env, required: true
+          option :name, required: true
+        end
+      end.to raise_error(Philiprehberger::CliKit::Error) do |error|
+        expect(error.message).to include('--env')
+        expect(error.message).to include('--name')
+      end
+    end
+
+    it 'parses normally when a required option is supplied' do
+      result = described_class.parse(%w[--env staging]) do
+        option :env, required: true
+      end
+
+      expect(result.options[:env]).to eq('staging')
+    end
+
+    it 'does not raise for options that are not required' do
+      expect do
+        described_class.parse([]) do
+          option :env
+        end
+      end.not_to raise_error
+    end
+
+    it 'appends (required) to the help text for a required option' do
+      parser = Philiprehberger::CliKit::Parser.new
+      parser.option(:env, short: :e, desc: 'Target environment', required: true)
+
+      expect(parser.help_text).to include('Target environment (required)')
+    end
+  end
 end

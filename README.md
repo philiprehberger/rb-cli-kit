@@ -105,6 +105,20 @@ port = Philiprehberger::CliKit.ask('Port:', error: 'Must be a number') do |answe
 end
 ```
 
+### Required options
+
+```ruby
+result = Philiprehberger::CliKit.parse(ARGV) do
+  option :env, short: :e, required: true, desc: 'Target environment'
+end
+
+# Invoked without --env raises Philiprehberger::CliKit::Error:
+#   Missing required option(s): --env
+#
+# Help text appends "(required)" to the option's description:
+#   -e, --env VALUE     Target environment (required)
+```
+
 ### Repeatable Options
 
 ```ruby
@@ -176,6 +190,7 @@ end
 | `.multi_select(message, choices, defaults:)` | Present numbered menu and return multiple selections |
 | `.spinner(message) { ... }` | Show spinner during block execution |
 | `Parser#option(name, multi: true)` | Collect repeated option values into an array |
+| `Parser#option(name, required: true)` | Raise `CliKit::Error` at parse time when the option is omitted |
 | `Parser#flags` | Hash of boolean flag values |
 | `Parser#options` | Hash of option values (arrays when `multi: true`) |
 | `Parser#arguments` | Array of positional arguments |
