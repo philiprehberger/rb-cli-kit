@@ -862,4 +862,106 @@ RSpec.describe Philiprehberger::CliKit do
       expect(parser.help_text).to include('Target environment (required)')
     end
   end
+
+  describe '.color' do
+    around do |example|
+      original = ENV.delete('NO_COLOR')
+      example.run
+      ENV['NO_COLOR'] = original if original
+    end
+
+    it 'wraps text in the expected ANSI color escape when enabled' do
+      allow($stdout).to receive(:tty?).and_return(true)
+
+      expect(described_class.color('OK', :green)).to eq("\e[32mOK\e[0m")
+    end
+
+    it 'returns text unchanged when stdout is not a TTY' do
+      allow($stdout).to receive(:tty?).and_return(false)
+
+      expect(described_class.color('OK', :green)).to eq('OK')
+    end
+
+    it 'returns text unchanged when NO_COLOR is set' do
+      allow($stdout).to receive(:tty?).and_return(true)
+      ENV['NO_COLOR'] = '1'
+
+      expect(described_class.color('OK', :green)).to eq('OK')
+    end
+
+    it 'raises ArgumentError for an unknown color symbol' do
+      allow($stdout).to receive(:tty?).and_return(true)
+
+      expect { described_class.color('OK', :chartreuse) }.to raise_error(ArgumentError, /unknown color/)
+    end
+  end
+
+  describe '.bold' do
+    around do |example|
+      original = ENV.delete('NO_COLOR')
+      example.run
+      ENV['NO_COLOR'] = original if original
+    end
+
+    it 'wraps text in the bold escape when enabled' do
+      allow($stdout).to receive(:tty?).and_return(true)
+
+      expect(described_class.bold('Important')).to eq("\e[1mImportant\e[0m")
+    end
+
+    it 'returns text unchanged when disabled' do
+      allow($stdout).to receive(:tty?).and_return(false)
+
+      expect(described_class.bold('Important')).to eq('Important')
+    end
+  end
+
+  describe '.dim' do
+    around do |example|
+      original = ENV.delete('NO_COLOR')
+      example.run
+      ENV['NO_COLOR'] = original if original
+    end
+
+    it 'wraps text in the dim escape when enabled' do
+      allow($stdout).to receive(:tty?).and_return(true)
+
+      expect(described_class.dim('subtle')).to eq("\e[2msubtle\e[0m")
+    end
+
+    it 'returns text unchanged when disabled' do
+      allow($stdout).to receive(:tty?).and_return(false)
+
+      expect(described_class.dim('subtle')).to eq('subtle')
+    end
+  end
+
+  describe Philiprehberger::CliKit::Colorize do
+    around do |example|
+      original = ENV.delete('NO_COLOR')
+      example.run
+      ENV['NO_COLOR'] = original if original
+    end
+
+    describe '.enabled?' do
+      it 'is false when NO_COLOR is set' do
+        allow($stdout).to receive(:tty?).and_return(true)
+        ENV['NO_COLOR'] = '1'
+
+        expect(described_class.enabled?).to be false
+      end
+
+      it 'is false when stdout is not a TTY' do
+        allow($stdout).to receive(:tty?).and_return(false)
+
+        expect(described_class.enabled?).to be false
+      end
+
+      it 'is true when stdout is a TTY and NO_COLOR is unset' do
+        allow($stdout).to receive(:tty?).and_return(true)
+
+        expect(described_class.enabled?).to be true
+      end
+    end
+  end
 end

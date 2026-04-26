@@ -177,6 +177,17 @@ data = Philiprehberger::CliKit.spinner('Loading data...') do
 end
 ```
 
+### Color Output
+
+Colors are auto-disabled when stdout is not a TTY or the `NO_COLOR` environment variable is set.
+
+```ruby
+require "philiprehberger/cli_kit"
+
+puts Philiprehberger::CliKit.color('OK', :green)
+puts Philiprehberger::CliKit.bold('Important')
+```
+
 ## API
 
 | Method | Description |
@@ -189,6 +200,9 @@ end
 | `.select(message, choices)` | Present numbered menu and return one selection |
 | `.multi_select(message, choices, defaults:)` | Present numbered menu and return multiple selections |
 | `.spinner(message) { ... }` | Show spinner during block execution |
+| `.color(text, name)` | Wrap text in ANSI color (no-op when not a TTY or NO_COLOR set) |
+| `.bold(text)` | Wrap text in ANSI bold |
+| `.dim(text)` | Wrap text in ANSI dim |
 | `Parser#option(name, multi: true)` | Collect repeated option values into an array |
 | `Parser#option(name, required: true)` | Raise `CliKit::Error` at parse time when the option is omitted |
 | `Parser#flags` | Hash of boolean flag values |

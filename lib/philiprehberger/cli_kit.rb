@@ -5,6 +5,7 @@ require_relative 'cli_kit/parser'
 require_relative 'cli_kit/prompt'
 require_relative 'cli_kit/spinner'
 require_relative 'cli_kit/menu'
+require_relative 'cli_kit/colorize'
 
 module Philiprehberger
   module CliKit
@@ -104,6 +105,27 @@ module Philiprehberger
     # @return [Array<String>] the selected values
     def self.multi_select(message, choices, defaults: [], input: $stdin, output: $stdout)
       Menu.multi_select(message, choices, defaults: defaults, input: input, output: output)
+    end
+
+    # Wraps text in ANSI color (auto-disabled when not a TTY or NO_COLOR is set).
+    #
+    # @param text [String]
+    # @param name [Symbol]
+    # @return [String]
+    def self.color(text, name)
+      Colorize.color(text, name)
+    end
+
+    # @param text [String]
+    # @return [String]
+    def self.bold(text)
+      Colorize.bold(text)
+    end
+
+    # @param text [String]
+    # @return [String]
+    def self.dim(text)
+      Colorize.dim(text)
     end
   end
 end
