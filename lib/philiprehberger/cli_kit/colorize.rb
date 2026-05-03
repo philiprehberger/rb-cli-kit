@@ -47,6 +47,18 @@ module Philiprehberger
 
         "\e[2m#{text}\e[0m"
       end
+
+      # Remove ANSI escape sequences (color, bold, dim, reset, etc.) from text.
+      # Idempotent on already-plain strings. Returns text unchanged when input
+      # is not a String (e.g. nil → nil).
+      #
+      # @param text [String, Object]
+      # @return [String, Object]
+      def strip(text)
+        return text unless text.is_a?(String)
+
+        text.gsub(/\e\[[0-9;]*m/, '')
+      end
     end
   end
 end

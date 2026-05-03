@@ -186,6 +186,10 @@ require "philiprehberger/cli_kit"
 
 puts Philiprehberger::CliKit.color('OK', :green)
 puts Philiprehberger::CliKit.bold('Important')
+
+# Strip ANSI escapes (useful for tests or logging colored output to a file)
+colored = Philiprehberger::CliKit.color('OK', :green)
+Philiprehberger::CliKit.strip_color(colored)  # => 'OK'
 ```
 
 ## API
@@ -203,6 +207,7 @@ puts Philiprehberger::CliKit.bold('Important')
 | `.color(text, name)` | Wrap text in ANSI color (no-op when not a TTY or NO_COLOR set) |
 | `.bold(text)` | Wrap text in ANSI bold |
 | `.dim(text)` | Wrap text in ANSI dim |
+| `.strip_color(text)` | Remove ANSI escape sequences from text |
 | `Parser#option(name, multi: true)` | Collect repeated option values into an array |
 | `Parser#option(name, required: true)` | Raise `CliKit::Error` at parse time when the option is omitted |
 | `Parser#flags` | Hash of boolean flag values |

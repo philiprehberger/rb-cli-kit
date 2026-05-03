@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-02
+
+### Added
+- `CliKit.strip_color(text)` (and `Colorize.strip(text)`) to remove ANSI escape sequences from a string — useful for testing colored output and writing colored messages to log files
+
 ## [0.5.0] - 2026-04-25
 
 ### Added

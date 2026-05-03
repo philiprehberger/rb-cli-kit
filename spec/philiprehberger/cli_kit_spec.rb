@@ -936,6 +936,43 @@ RSpec.describe Philiprehberger::CliKit do
     end
   end
 
+  describe '.strip_color' do
+    around do |example|
+      original = ENV.delete('NO_COLOR')
+      example.run
+      ENV['NO_COLOR'] = original if original
+    end
+
+    it 'removes color escapes from a colored string' do
+      allow($stdout).to receive(:tty?).and_return(true)
+      colored = described_class.color('hi', :red)
+      expect(described_class.strip_color(colored)).to eq('hi')
+    end
+
+    it 'returns plain text unchanged' do
+      expect(described_class.strip_color('plain')).to eq('plain')
+    end
+
+    it 'removes bold and dim escapes' do
+      allow($stdout).to receive(:tty?).and_return(true)
+      bolded = described_class.bold('important')
+      dimmed = described_class.dim('subtle')
+      expect(described_class.strip_color(bolded)).to eq('important')
+      expect(described_class.strip_color(dimmed)).to eq('subtle')
+    end
+
+    it 'removes multiple sequential escapes' do
+      input = "\e[31mred\e[0m \e[1mbold\e[0m \e[2mdim\e[0m"
+      expect(described_class.strip_color(input)).to eq('red bold dim')
+    end
+
+    it 'is idempotent' do
+      input = "\e[31mhi\e[0m"
+      once = described_class.strip_color(input)
+      expect(described_class.strip_color(once)).to eq(once)
+    end
+  end
+
   describe Philiprehberger::CliKit::Colorize do
     around do |example|
       original = ENV.delete('NO_COLOR')

@@ -127,5 +127,14 @@ module Philiprehberger
     def self.dim(text)
       Colorize.dim(text)
     end
+
+    # Remove ANSI escape sequences from text. Useful for testing colored output
+    # or for logging colored messages without escape codes leaking through.
+    #
+    # @param text [String]
+    # @return [String]
+    def self.strip_color(text)
+      Colorize.strip(text)
+    end
   end
 end
